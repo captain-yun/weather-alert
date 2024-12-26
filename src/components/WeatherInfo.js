@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatWebDisplay } from '@/utils/weatherFormatter';
 
 const WeatherInfo = () => {
   const [weather, setWeather] = useState(null);
@@ -11,7 +12,7 @@ const WeatherInfo = () => {
       try {
         const response = await fetch('/api/weather');
         const data = await response.json();
-        setWeather(data);
+        setWeather(formatWebDisplay(data));
       } catch (error) {
         console.error('날씨 정보를 가져오는데 실패했습니다:', error);
       } finally {
@@ -36,8 +37,8 @@ const WeatherInfo = () => {
       <h2 className="text-xl font-semibold mb-4">현재 날씨</h2>
       {weather && (
         <div className="space-y-2">
-          <p className="text-lg">기온: {weather.temperature}°C</p>
-          <p className="text-lg">날씨: {weather.description}</p>
+          <p className="text-lg">기온: {weather.mainInfo.temperature}</p>
+          <p className="text-lg">날씨: {weather.mainInfo.description}</p>
           <p className="text-sm text-gray-500">
             마지막 업데이트: {new Date().toLocaleString()}
           </p>

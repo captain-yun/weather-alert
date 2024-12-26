@@ -1,11 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import KakaoLoginButton from './KakaoLoginButton';
 
 const SubscriptionForm = ({ isSubscribed, setIsSubscribed }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [kakaoAccessToken, setKakaoAccessToken] = useState(null);
+
+  useEffect(() => {
+    // 로컬 스토리지에서 토큰 확인
+    const token = localStorage.getItem('kakaoAccessToken');
+    setKakaoAccessToken(token);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -13,12 +21,19 @@ const SubscriptionForm = ({ isSubscribed, setIsSubscribed }) => {
     setError('');
 
     try {
-      const response = await fetch('/api/subscribe', {
+      if (!kakaoAccessToken) {
+        throw new Error('카카오톡 로그인이 필요합니다.');
+      }
+
+      const response = await fetch('/api/notify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({
+          accessToken: kakaoAccessToken,
+          phoneNumber
+        }),
       });
 
       if (!response.ok) {
@@ -33,6 +48,17 @@ const SubscriptionForm = ({ isSubscribed, setIsSubscribed }) => {
       setLoading(false);
     }
   };
+
+  if (!kakaoAccessToken) {
+    return (
+      <div className="space-y-4">
+        <p className="text-center text-gray-600">
+          날씨 알림을 받으려면 카카오톡 로그인이 필요합니다.
+        </p>
+        <KakaoLoginButton />
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

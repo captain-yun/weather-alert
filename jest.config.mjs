@@ -10,13 +10,6 @@ const config = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-  },
-  testMatch: [
-    '**/__tests__/**/*.test.js',
-    '**/?(*.)+(spec|test).js'
-  ],
-  transform: {
-    '^.+\\.js$': ['babel-jest', { presets: ['next/babel'] }]
   }
 }
  
