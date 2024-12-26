@@ -3,72 +3,54 @@
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getKakaoToken } from '@/utils/kakaoAuth';
-import { prisma } from '@/lib/prisma';
 
-export default function KakaoCallback() {
+export default function KakaoCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const handleKakaoCallback = async () => {
+    const code = searchParams.get('code');
+    
+    const processKakaoLogin = async () => {
       try {
-        const code = searchParams.get('code');
-        if (!code) throw new Error('Authorization code not found');
+        console.log('인가 코드:', code);
+        const tokenResponse = await getKakaoToken(code);
+        console.log('토큰 응답:', tokenResponse);
+        
+        // 토큰을 받은 후 서버에 사용자 등록
+        if (tokenResponse.access_token) {
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              accessToken: tokenResponse.access_token,
+              refreshToken: tokenResponse.refresh_token,
+              expiresIn: tokenResponse.expires_in
+            }),
+          });
 
-        // 액세스 토큰 요청 (client_secret 포함)
-        const response = await fetch('https://kauth.kakao.com/oauth/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            client_id: process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID,
-            client_secret: process.env.KAKAO_CLIENT_SECRET,
-            redirect_uri: `${process.env.NEXT_PUBLIC_SERVICE_URL}/auth/kakao/callback`,
-            code,
-          }),
-        });
-
-        if (!response.ok) throw new Error('Failed to get token');
-        
-        const tokenData = await response.json();
-        
-        // 토큰 저장
-        localStorage.setItem('kakaoAccessToken', tokenData.access_token);
-        
-        // Prisma를 통해 Supabase DB에 사용자 정보 저장
-        const user = await prisma.user.upsert({
-          where: { accessToken: tokenData.access_token },
-          update: {
-            refreshToken: tokenData.refresh_token,
-            tokenExpires: new Date(Date.now() + tokenData.expires_in * 1000),
-            isActive: true
-          },
-          create: {
-            accessToken: tokenData.access_token,
-            refreshToken: tokenData.refresh_token,
-            tokenExpires: new Date(Date.now() + tokenData.expires_in * 1000),
-            isActive: true
+          if (!response.ok) {
+            throw new Error('Failed to register user');
           }
-        });
 
-        router.push('/');
+          router.push('/subscription'); // 구독 설정 페이지로 이동
+        }
       } catch (error) {
-        console.error('카카오 로그인 실패:', error);
+        console.error('카카오 로그인 처리 중 에러:', error);
         router.push('/login?error=auth_failed');
       }
     };
 
-    handleKakaoCallback();
-  }, [router, searchParams]);
+    if (code) {
+      processKakaoLogin();
+    }
+  }, [searchParams, router]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <h2 className="text-xl font-semibold mb-4">카카오톡 로그인 처리중...</h2>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-      </div>
+    <div className="flex justify-center items-center min-h-screen">
+      <p>카카오 로그인 처리 중...</p>
     </div>
   );
 } 

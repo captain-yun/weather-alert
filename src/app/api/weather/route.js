@@ -1,38 +1,39 @@
 import { NextResponse } from 'next/server';
-import { 
-  WEATHER_API_CONSTANTS, 
-  getFormattedDateTime, 
-  parseWeatherData 
-} from '@/utils/weatherApi';
 
 export async function GET() {
   try {
     const API_KEY = process.env.WEATHER_API_KEY;
-    if (!API_KEY) {
-      throw new Error('API 키가 설정되지 않았습니다.');
-    }
-
-    const { baseDate, baseTime } = getFormattedDateTime();
-    const url = new URL(WEATHER_API_CONSTANTS.BASE_URL);
+    const API_ENDPOINT = 'http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst';
     
-    // API 파라미터 설정
-    const params = {
-      serviceKey: API_KEY,
-      numOfRows: '10',
-      pageNo: '1',
-      base_date: baseDate,
-      base_time: baseTime,
-      nx: WEATHER_API_CONSTANTS.NX,
-      ny: WEATHER_API_CONSTANTS.NY,
-      dataType: 'JSON'
-    };
+    console.log(API_KEY);
 
-    // URL에 파라미터 추가
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
+    // 현재 시간 기준으로 날씨 정보 요청
+    const now = new Date();
+    const baseDate = now.toISOString().slice(0, 10).replace(/-/g, '');
+    
+    
+    // API 요청 시간을 30분 단위로 조정
+    const hour = now.getHours();
+    const minutes = now.getMinutes();
+    const baseTime = `${hour.toString().padStart(2, '0')}${minutes < 30 ? '00' : '30'}`;
+
+    // 서울 강남구 좌표 (예시)
+    const nx = 61;
+    const ny = 126;
+
+    const url = new URL(API_ENDPOINT);
+    url.searchParams.append('serviceKey', API_KEY);
+    url.searchParams.append('numOfRows', '10');
+    url.searchParams.append('pageNo', '1');
+    url.searchParams.append('base_date', baseDate);
+    url.searchParams.append('base_time', baseTime);
+    url.searchParams.append('nx', nx);
+    url.searchParams.append('ny', ny);
+    url.searchParams.append('dataType', 'JSON');
+
+    const response = await fetch(url.toString(), {
+      next: { revalidate: 1800 } // 30분마다 재검증
     });
-
-    const response = await fetch(url.toString(), { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error(`API 요청 실패: ${response.status}`);
@@ -40,32 +41,62 @@ export async function GET() {
 
     const data = await response.json();
 
-    // API 응답 검증
-    if (data.response?.header?.resultCode !== '00') {
-      throw new Error(data.response?.header?.resultMsg || '알 수 없는 오류가 발생했습니다.');
+    if (data.response.header.resultCode !== '00') {
+      throw new Error(data.response.header.resultMsg);
     }
 
-    const items = data.response?.body?.items?.item;
-    if (!items || !Array.isArray(items)) {
-      throw new Error('날씨 데이터 형식이 올바르지 않습니다.');
-    }
+    // 날씨 데이터 파싱
+    const items = data.response.body.items.item;
+    const weatherData = {
+      temperature: null,  // 기온
+      rainfall: null,     // 강수량
+      humidity: null,     // 습도
+      windSpeed: null,    // 풍속
+      description: null   // 날씨 설명
+    };
 
-    // 날씨 데이터 파싱 및 반환
-    const weatherData = parseWeatherData(items);
-    
-    return NextResponse.json({
-      ...weatherData,
-      timestamp: new Date().toISOString(),
+    // 각 카테고리별 데이터 매핑
+    items.forEach(item => {
+      switch (item.category) {
+        case 'T1H': // 기온
+          weatherData.temperature = parseFloat(item.obsrValue);
+          break;
+        case 'RN1': // 1시간 강수량
+          weatherData.rainfall = parseFloat(item.obsrValue);
+          break;
+        case 'REH': // 습도
+          weatherData.humidity = parseFloat(item.obsrValue);
+          break;
+        case 'WSD': // 풍속
+          weatherData.windSpeed = parseFloat(item.obsrValue);
+          break;
+        case 'PTY': // 강수형태
+          weatherData.description = getWeatherDescription(parseInt(item.obsrValue));
+          break;
+      }
     });
 
+    return NextResponse.json(weatherData);
   } catch (error) {
-    console.error('날씨 정보 조회 실패:', error);
+    console.error('Weather API Error:', error);
     return NextResponse.json(
-      { 
-        error: '날씨 정보를 가져오는데 실패했습니다.',
-        message: error.message 
-      },
+      { error: 'Failed to fetch weather data' },
       { status: 500 }
     );
   }
+}
+
+// 강수형태 코드를 설명으로 변환하는 함수
+function getWeatherDescription(ptyCode) {
+  const weatherCodes = {
+    0: '맑음',
+    1: '비',
+    2: '비/눈',
+    3: '눈',
+    4: '소나기',
+    5: '빗방울',
+    6: '빗방울/눈날림',
+    7: '눈날림'
+  };
+  return weatherCodes[ptyCode] || '알 수 없음';
 } 
