@@ -5,16 +5,26 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
   id            String    @id @default(cuid())
-  phoneNumber   String?   @unique
   accessToken   String    @unique
   refreshToken  String
   tokenExpires  DateTime
+  isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  isActive      Boolean   @default(true)
-  lastNotified  DateTime?
+  notifications Notification[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  time      String   // 알림 받을 시간 (예: "0900")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 } 

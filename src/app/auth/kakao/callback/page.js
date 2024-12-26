@@ -25,11 +25,14 @@ export default function KakaoCallbackPage() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+              kakaoId: tokenResponse.id,
               accessToken: tokenResponse.access_token,
               refreshToken: tokenResponse.refresh_token,
-              expiresIn: tokenResponse.expires_in
+              expiresIn: Number(tokenResponse.expires_in) || 0
             }),
           });
+
+          console.log('사용자 등록 완료 : ' + response);
 
           if (!response.ok) {
             throw new Error('Failed to register user');

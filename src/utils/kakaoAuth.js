@@ -23,7 +23,7 @@ export const getKakaoAuthUrl = () => {
     client_id: process.env.NEXT_PUBLIC_KAKAO_API_KEY,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'talk_message'
+    scope: 'talk_message profile_nickname'
   };
 
   const query = Object.entries(params)

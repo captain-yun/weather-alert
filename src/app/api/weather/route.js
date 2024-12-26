@@ -4,22 +4,18 @@ export async function GET() {
   try {
     const API_KEY = process.env.WEATHER_API_KEY;
     const API_ENDPOINT = 'http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst';
-    
-    console.log(API_KEY);
 
-    // 현재 시간 기준으로 날씨 정보 요청
+    // 시간 설정 (40분 전 기준)
     const now = new Date();
-    const baseDate = now.toISOString().slice(0, 10).replace(/-/g, '');
-    
-    
-    // API 요청 시간을 30분 단위로 조정
-    const hour = now.getHours();
-    const minutes = now.getMinutes();
-    const baseTime = `${hour.toString().padStart(2, '0')}${minutes < 30 ? '00' : '30'}`;
+    const adjustedDate = new Date(now.getTime() - 40 * 60000);
+    const baseDate = adjustedDate.toISOString().slice(0, 10).replace(/-/g, '');
+    const baseTime = adjustedDate
+      .getHours()
+      .toString()
+      .padStart(2, '0') + adjustedDate.getMinutes().toString().padStart(2, '0');
 
-    // 서울 강남구 좌표 (예시)
-    const nx = 61;
-    const ny = 126;
+    const nx = 61; // 서울 강남구 x 좌표
+    const ny = 126; // 서울 강남구 y 좌표
 
     const url = new URL(API_ENDPOINT);
     url.searchParams.append('serviceKey', API_KEY);
@@ -55,7 +51,7 @@ export async function GET() {
       description: null   // 날씨 설명
     };
 
-    // 각 카테고리별 데이터 매핑
+    // 데이터 매핑
     items.forEach(item => {
       switch (item.category) {
         case 'T1H': // 기온
@@ -76,7 +72,9 @@ export async function GET() {
       }
     });
 
+    // 정상 응답 반환
     return NextResponse.json(weatherData);
+
   } catch (error) {
     console.error('Weather API Error:', error);
     return NextResponse.json(
@@ -99,4 +97,4 @@ function getWeatherDescription(ptyCode) {
     7: '눈날림'
   };
   return weatherCodes[ptyCode] || '알 수 없음';
-} 
+}

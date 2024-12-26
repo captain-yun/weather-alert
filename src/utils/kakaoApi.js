@@ -2,7 +2,7 @@ const KAKAO_API_ENDPOINT = 'https://kapi.kakao.com/v2/api/talk/memo/default/send
 
 export const sendKakaoMessage = async (accessToken, message) => {
   try {
-    const response = await fetch(KAKAO_API_ENDPOINT, {
+    const response = await fetch('https://kapi.kakao.com/v2/api/talk/memo/default/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -13,21 +13,20 @@ export const sendKakaoMessage = async (accessToken, message) => {
           object_type: 'text',
           text: message,
           link: {
-            web_url: process.env.NEXT_PUBLIC_SERVICE_URL || 'http://localhost:3000',
-            mobile_web_url: process.env.NEXT_PUBLIC_SERVICE_URL || 'http://localhost:3000'
+            web_url: process.env.NEXT_PUBLIC_SERVICE_URL,
+            mobile_web_url: process.env.NEXT_PUBLIC_SERVICE_URL
           }
         })
       })
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.msg || '카카오톡 메시지 전송에 실패했습니다.');
+      throw new Error('Failed to send Kakao message');
     }
 
     return await response.json();
   } catch (error) {
-    console.error('카카오톡 메시지 전송 실패:', error);
+    console.error('카카오 메시지 전송 에러:', error);
     throw error;
   }
 };
