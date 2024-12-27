@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
-  kakaoId       String?   @unique
+  kakaoId       String    @unique
   accessToken   String    @unique
   refreshToken  String
   tokenExpires  DateTime

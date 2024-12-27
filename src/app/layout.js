@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 // 서버 사이드에서만 스케줄러 시작
 if (typeof window === 'undefined') {
-  startNotificationScheduler();
+  // startNotificationScheduler();
 }
 
 export const metadata = {
