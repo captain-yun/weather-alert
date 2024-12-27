@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getKakaoToken } from '@/utils/kakaoAuth';
+import { getKakaoToken, getKakaoUserInfo } from '@/utils/kakaoAuth';
 
 export default function KakaoCallbackPage() {
   const router = useRouter();
@@ -13,10 +13,15 @@ export default function KakaoCallbackPage() {
     
     const processKakaoLogin = async () => {
       try {
-        console.log('인가 코드:', code);
+        // console.log('인가 코드:', code);
         const tokenResponse = await getKakaoToken(code);
-        console.log('토큰 응답:', tokenResponse);
+        // console.log('토큰 응답:', tokenResponse);
+
+        console.log('userInfo 가져오기 시작...')
+        const userInfo = await getKakaoUserInfo(tokenResponse.access_token);        
         
+        console.log('userInfo = ' + userInfo);
+
         // 토큰을 받은 후 서버에 사용자 등록
         if (tokenResponse.access_token) {
           const response = await fetch('/api/auth/register', {
@@ -25,24 +30,27 @@ export default function KakaoCallbackPage() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              kakaoId: tokenResponse.id,
+              kakaoId: String(userInfo.id),
               accessToken: tokenResponse.access_token,
               refreshToken: tokenResponse.refresh_token,
               expiresIn: Number(tokenResponse.expires_in) || 0
             }),
           });
 
-          console.log('사용자 등록 완료 : ' + response);
+          const responseData = await response.json(); // response.json()은 한 번만 호출
 
           if (!response.ok) {
-            throw new Error('Failed to register user');
+            throw new Error(responseData.error || 'Failed to register user');
           }
-
-          router.push('/subscription'); // 구독 설정 페이지로 이동
+          
+          console.log('사용자 등록 완료:', responseData);
+          setTimeout(() => {
+            router.replace('/subscription');
+          }, 500);
         }
       } catch (error) {
         console.error('카카오 로그인 처리 중 에러:', error);
-        router.push('/login?error=auth_failed');
+        router.replace('/login?error=auth_failed');
       }
     };
 

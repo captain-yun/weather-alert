@@ -38,9 +38,9 @@ export const getKakaoAuthUrl = () => {
 
 // 액세스 토큰 요청
 export const getKakaoToken = async (code) => {
-  console.log('토큰 요청 시작');
-  console.log('인가 코드:', code);
-  console.log('CLIENT_SECRET 존재 여부:', !!process.env.NEXT_PUBLIC_KAKAO_CLIENT_SECRET);
+  // console.log('토큰 요청 시작');
+  // console.log('인가 코드:', code);
+  // console.log('CLIENT_SECRET 존재 여부:', !!process.env.NEXT_PUBLIC_KAKAO_CLIENT_SECRET);
   
   const tokenParams = {
     grant_type: 'authorization_code',
@@ -50,7 +50,7 @@ export const getKakaoToken = async (code) => {
     code,
   };
   
-  console.log('토큰 요청 파라미터:', tokenParams);
+  // console.log('토큰 요청 파라미터:', tokenParams);
 
   try {
     const response = await fetch('https://kauth.kakao.com/oauth/token', {
@@ -75,3 +75,31 @@ export const getKakaoToken = async (code) => {
     throw error;
   }
 }; 
+
+export const getKakaoUserInfo = async (accessToken) => {
+  // console.log('사용자 정보 요청 시작');
+  // console.log('엑세스 토큰:', accessToken);
+
+  try {
+    const response = await fetch('https://kapi.kakao.com/v2/user/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('사용자 정보 요청 실패:', response.status, errorData);
+      throw new Error(`Failed to get user info: ${response.status} ${errorData}`);
+    }
+
+    const userInfo = await response.json();
+    // console.log('사용자 정보 요청 성공:', userInfo);
+    return userInfo; // 사용자 정보 반환
+  } catch (error) {
+    console.error('사용자 정보 요청 중 에러:', error);
+    throw error;
+  }
+};
