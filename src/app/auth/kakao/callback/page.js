@@ -55,11 +55,11 @@ export default function KakaoCallbackPage() {
         localStorage.setItem('kakaoAccessToken', tokenResponse.access_token);
         
         // 알림 설정 페이지로 이동
-        router.replace('/notification');
+        router.replace('/');
 
       } catch (error) {
         console.error('카카오 로그인 처리 중 에러:', error);
-        router.replace('/login?error=' + encodeURIComponent(error.message));
+        router.replace('/?error=' + encodeURIComponent(error.message));
       }
     };
 
