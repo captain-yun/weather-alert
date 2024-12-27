@@ -1,46 +1,55 @@
 import { NextResponse } from 'next/server';
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request) {
   try {
-    // request.json()은 한 번만 호출해야 합니다
     const body = await request.json();
     const { kakaoId, accessToken, refreshToken, expiresIn } = body;
 
-    console.log("kakaoId:", kakaoId);
-    const expiresInSeconds = Number(expiresIn) || 0;
+    if (!kakaoId || !accessToken) {
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      );
+    }
 
+    const now = new Date().toISOString();
+    
+    // Prisma를 사용하여 사용자 정보 저장
     const user = await prisma.user.upsert({
-      where: { 
-        kakaoId: kakaoId  // accessToken보다 kakaoId로 식별하는 것이 더 안정적입니다
-      },
+      where: { kakaoId: kakaoId },
       update: {
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        tokenExpires: new Date(Date.now() + expiresInSeconds * 1000)
+        accessToken,
+        refreshToken,
+        tokenExpires: new Date(Date.now() + (expiresIn || 0) * 1000),
+        isActive: true,
+        updatedAt: now
       },
       create: {
-        kakaoId: kakaoId,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        tokenExpires: new Date(Date.now() + expiresInSeconds * 1000)
+        kakaoId,
+        accessToken,
+        refreshToken,
+        tokenExpires: new Date(Date.now() + (expiresIn || 0) * 1000),
+        isActive: true,
+        createdAt: now,
+        updatedAt: now
       }
     });
 
-    // Response를 한 번만 생성합니다
     return NextResponse.json({ 
       success: true, 
       user: {
         id: user.id,
         kakaoId: user.kakaoId,
-        tokenExpires: user.tokenExpires
+        tokenExpires: user.tokenExpires,
+        isActive: user.isActive
       }
     });
 
   } catch (error) {
     console.error('사용자 등록 실패:', error);
     return NextResponse.json(
-      { error: '사용자 등록에 실패했습니다.' },
+      { error: '사용자 등록에 실패했습니다.', details: error.message },
       { status: 500 }
     );
   }

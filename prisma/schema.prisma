@@ -25,6 +25,8 @@ model Notification {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   time      String   // 알림 받을 시간 (예: "0900")
+  city      String   // 시 (예: "서울특별시")
+  district  String   // 구 (예: "강남구")
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
