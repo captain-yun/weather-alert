@@ -1,3 +1,5 @@
+import { sendKakaoMessage } from './kakaoApi';
+
 // 메시지 큐 구현
 export class MessageQueue {
   constructor() {
